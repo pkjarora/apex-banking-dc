@@ -1,0 +1,28 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Database files (replicated by Nutanix NDK — not committed to git)
+*.db
+*.sqlite3
+/data/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+/tmp/
+
+# Secrets (never commit these)
+*.env
+.env.local
+secrets.yaml

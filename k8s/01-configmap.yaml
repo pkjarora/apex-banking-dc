@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: banking-config
+  namespace: banking
+data:
+  # ── Displayed prominently on the dashboard ──────────────────────────
+  # Change this value to match your actual Kubernetes cluster name.
+  # When Nutanix NDK replicates the workload to a DR cluster,
+  # update this ConfigMap there to reflect the DR cluster identity.
+  CLUSTER_NAME:  "k8s-dc-primary-mumbai"
+  DATACENTER:    "Primary Datacenter"
+  DC_REGION:     "ap-south-1 (Mumbai)"
+
+  # Application settings
+  HOST:     "0.0.0.0"
+  PORT:     "8080"
+  DB_PATH:  "/data/banking.db"

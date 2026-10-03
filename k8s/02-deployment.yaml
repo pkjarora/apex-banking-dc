@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-app
+  namespace: banking
+  labels:
+    app: banking-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: banking-app
+  template:
+    metadata:
+      labels:
+        app: banking-app
+    spec:
+      # Spread pods across nodes for HA
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: banking-app
+
+      containers:
+        - name: banking-app
+          image: apexbank/demo-app:latest   # replace with your registry image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          # Cluster identity from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: banking-config
+
+          # K8s Downward API — pod/node identity shown on dashboard
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+          # /data is replicated by Nutanix NDK — do NOT add emptyDir here
+          volumeMounts:
+            - name: banking-data
+              mountPath: /data
+
+          resources:
+            requests:
+              cpu:    100m
+              memory: 128Mi
+            limits:
+              cpu:    500m
+              memory: 256Mi
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 3
+
+      volumes:
+        - name: banking-data
+          persistentVolumeClaim:
+            claimName: banking-data-pvc   # backed by Nutanix NDK volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: banking-svc
+  namespace: banking
+  labels:
+    app: banking-app
+spec:
+  selector:
+    app: banking-app
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080

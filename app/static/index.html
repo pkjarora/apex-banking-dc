@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Bank — Enterprise Banking Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-inter antialiased">
+
+  <!-- ── Toast ─────────────────────────────────────────── -->
+  <div id="toast"
+    class="fixed top-5 right-5 z-50 flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border transition-all duration-300 opacity-0 pointer-events-none max-w-sm"
+    style="transform: translateY(-20px)">
+    <div id="toast-icon" class="mt-0.5 text-lg shrink-0"></div>
+    <div>
+      <div id="toast-title" class="font-semibold text-sm"></div>
+      <div id="toast-message" class="text-xs text-gray-400 mt-0.5"></div>
+    </div>
+  </div>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="sticky top-0 z-30 border-b border-gray-800 bg-gray-950/90 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <i class="fa-solid fa-building-columns text-gray-950 text-base"></i>
+        </div>
+        <div>
+          <div class="font-black text-white tracking-tight leading-none">APEX BANK</div>
+          <div class="text-[10px] text-gray-400 font-medium tracking-widest uppercase">Enterprise Core Banking</div>
+        </div>
+      </div>
+
+      <!-- ★ Cluster Name Badge — the headline of this demo ★ -->
+      <div id="cluster-badge"
+        class="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-gray-900 border border-emerald-500/40 shadow-lg cursor-default group relative">
+        <!-- live pulse dot -->
+        <span class="relative flex h-3 w-3 shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">K8s Cluster</span>
+            <span id="cluster-role-pill"
+              class="text-[9px] font-mono font-bold px-1.5 py-px rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              PRIMARY
+            </span>
+          </div>
+          <div id="cluster-name-text"
+            class="font-mono font-black text-lg text-emerald-400 tracking-tight leading-tight">
+            k8s-dc-primary-cluster
+          </div>
+        </div>
+
+        <!-- hover tooltip with K8s metadata -->
+        <div class="pointer-events-none absolute top-full right-0 mt-2 w-64 p-3 rounded-xl bg-gray-900 border border-gray-700 shadow-xl text-xs space-y-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+          <div class="font-semibold text-white border-b border-gray-800 pb-1 mb-1">Kubernetes Runtime Info</div>
+          <div class="flex justify-between text-gray-400"><span>Pod</span><span id="tt-pod" class="font-mono text-gray-200">—</span></div>
+          <div class="flex justify-between text-gray-400"><span>Node</span><span id="tt-node" class="font-mono text-gray-200">—</span></div>
+          <div class="flex justify-between text-gray-400"><span>Namespace</span><span id="tt-ns" class="font-mono text-gray-200">—</span></div>
+          <div class="flex justify-between text-gray-400"><span>Region</span><span id="tt-region" class="text-gray-200">—</span></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-2">
+        <button onclick="openTxnModal()"
+          class="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-2 shadow shadow-emerald-900/40">
+          <i class="fa-solid fa-plus"></i> New Transfer
+        </button>
+        <button onclick="refresh()" title="Refresh"
+          class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition">
+          <i id="refresh-icon" class="fa-solid fa-arrows-rotate text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+    <!-- Row 1: Account Card + Quick Stats -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Account Card -->
+      <div class="lg:col-span-2 rounded-3xl bg-gradient-to-br from-gray-900 to-gray-900/60
+            border border-gray-800 p-7 space-y-6 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none"></div>
+
+        <!-- User -->
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-gray-950 font-black text-xl flex items-center justify-center shadow">
+            PA
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 id="user-name" class="text-xl font-bold text-white">Pankaj Arora</h1>
+              <span class="text-[10px] font-mono bg-gray-800 text-emerald-400 border border-gray-700 px-2 py-0.5 rounded">@pankaj</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 font-mono">
+              <span id="user-acc">SB-8829-4100-PKJ</span>
+              <span class="text-gray-600">•</span>
+              <span class="text-amber-400"><i class="fa-solid fa-crown text-[10px] mr-1"></i>Priority Platinum</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Balance -->
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Available Balance</div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-4xl font-black text-white font-mono" id="balance">5,00,000.00</span>
+            <span class="text-sm text-gray-400">INR</span>
+          </div>
+        </div>
+
+        <!-- Quick Transaction Buttons -->
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3">
+            <i class="fa-solid fa-bolt text-amber-400 mr-1"></i>Quick Demo Transactions
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button onclick="quickTxn('CREDIT','SALARY','Monthly Executive Salary (Google Inc.)',185000)"
+              class="quick-btn group p-3 rounded-xl bg-gray-800/80 hover:bg-emerald-950/60 border border-gray-700 hover:border-emerald-500/50 text-left transition">
+              <div class="text-emerald-400 text-xs font-mono font-bold mb-1">+₹1,85,000</div>
+              <div class="text-xs font-semibold text-white">Salary Credit</div>
+              <div class="text-[10px] text-gray-500">Google Inc.</div>
+            </button>
+            <button onclick="quickTxn('DEBIT','UTILITY','AWS Cloud & K8s Cluster Billing',18400)"
+              class="quick-btn group p-3 rounded-xl bg-gray-800/80 hover:bg-rose-950/60 border border-gray-700 hover:border-rose-500/50 text-left transition">
+              <div class="text-rose-400 text-xs font-mono font-bold mb-1">-₹18,400</div>
+              <div class="text-xs font-semibold text-white">Cloud Bill</div>
+              <div class="text-[10px] text-gray-500">AWS / K8s</div>
+            </button>
+            <button onclick="quickTxn('DEBIT','UPI_PAY','Merchant UPI Payment - Swiggy Instamart',3250)"
+              class="quick-btn group p-3 rounded-xl bg-gray-800/80 hover:bg-rose-950/60 border border-gray-700 hover:border-rose-500/50 text-left transition">
+              <div class="text-rose-400 text-xs font-mono font-bold mb-1">-₹3,250</div>
+              <div class="text-xs font-semibold text-white">UPI Payment</div>
+              <div class="text-[10px] text-gray-500">Swiggy</div>
+            </button>
+            <button onclick="quickTxn('CREDIT','DIVIDEND','Quarterly Treasury Bond Dividend',12500)"
+              class="quick-btn group p-3 rounded-xl bg-gray-800/80 hover:bg-emerald-950/60 border border-gray-700 hover:border-emerald-500/50 text-left transition">
+              <div class="text-emerald-400 text-xs font-mono font-bold mb-1">+₹12,500</div>
+              <div class="text-xs font-semibold text-white">Dividend</div>
+              <div class="text-[10px] text-gray-500">Treasury Bond</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats Column -->
+      <div class="space-y-4">
+
+        <!-- Cluster Info Card -->
+        <div class="rounded-2xl bg-gray-900 border border-gray-800 p-5 space-y-3 shadow">
+          <div class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Cluster Info</div>
+          <div class="space-y-2 text-xs font-mono">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Name</span>
+              <span id="info-cluster" class="text-emerald-400 font-semibold truncate ml-2 text-right">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Region</span>
+              <span id="info-region" class="text-gray-200">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Pod</span>
+              <span id="info-pod" class="text-gray-200 truncate ml-2 text-right max-w-[140px]">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Node</span>
+              <span id="info-node" class="text-gray-200">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Namespace</span>
+              <span id="info-ns" class="text-gray-200">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction Count Stats -->
+        <div class="rounded-2xl bg-gray-900 border border-gray-800 p-5 shadow">
+          <div class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3">Stats</div>
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="bg-gray-800/60 rounded-xl p-3">
+              <div class="text-xl font-black text-white" id="stat-total">0</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">Transactions</div>
+            </div>
+            <div class="bg-gray-800/60 rounded-xl p-3">
+              <div class="text-xl font-black text-emerald-400" id="stat-credits">0</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">Credits</div>
+            </div>
+            <div class="bg-gray-800/60 rounded-xl p-3">
+              <div class="text-xl font-black text-rose-400" id="stat-debits">0</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">Debits</div>
+            </div>
+            <div class="bg-gray-800/60 rounded-xl p-3">
+              <button onclick="resetDemo()"
+                class="text-[10px] text-gray-400 hover:text-rose-400 transition flex items-center gap-1 mx-auto">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Row 2: Transaction Ledger -->
+    <div class="rounded-3xl bg-gray-900 border border-gray-800 shadow-xl overflow-hidden">
+      <div class="px-7 py-5 border-b border-gray-800 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-emerald-400"></i>
+            Transaction Ledger
+          </h2>
+          <p class="text-xs text-gray-400 mt-0.5">All committed transactions for user Pankaj · auto-refreshes every 3s</p>
+        </div>
+        <span class="text-xs font-mono bg-gray-800 px-3 py-1 rounded-lg text-gray-300 border border-gray-700">
+          <span id="ledger-count">0</span> records
+        </span>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll max-h-96">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 bg-gray-900/95 text-gray-400 uppercase tracking-wider border-b border-gray-800">
+            <tr>
+              <th class="px-6 py-3 text-left">Txn ID / Time</th>
+              <th class="px-4 py-3 text-left">Description</th>
+              <th class="px-4 py-3 text-left">Cluster</th>
+              <th class="px-4 py-3 text-right">Amount</th>
+              <th class="px-4 py-3 text-right">Balance</th>
+              <th class="px-4 py-3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-body" class="divide-y divide-gray-800/60 font-mono">
+            <tr><td colspan="6" class="px-6 py-10 text-center text-gray-600">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── New Transfer Modal ────────────────────────────── -->
+  <div id="txn-modal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md p-7 shadow-2xl relative">
+      <button onclick="closeTxnModal()" class="absolute top-5 right-5 text-gray-500 hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+      <h3 class="text-lg font-bold text-white mb-1">New Bank Transfer</h3>
+      <p class="text-xs text-gray-400 mb-6">Executes on cluster <span id="modal-cluster" class="text-emerald-400 font-mono">—</span></p>
+
+      <form id="txn-form" onsubmit="submitTxn(event)" class="space-y-4 text-sm">
+        <!-- Type -->
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-700 bg-gray-800 cursor-pointer hover:border-emerald-500 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-950/40">
+            <input type="radio" name="txn_type" value="CREDIT" checked class="accent-emerald-500">
+            <span class="font-semibold text-emerald-400 text-xs">CREDIT</span>
+          </label>
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-700 bg-gray-800 cursor-pointer hover:border-rose-500 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-950/40">
+            <input type="radio" name="txn_type" value="DEBIT" class="accent-rose-500">
+            <span class="font-semibold text-rose-400 text-xs">DEBIT</span>
+          </label>
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label class="block text-xs text-gray-400 font-medium mb-1">Amount (INR)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2.5 text-gray-400 font-mono">₹</span>
+            <input type="number" id="f-amount" min="1" step="0.01" required placeholder="50000.00"
+              class="w-full bg-gray-950 border border-gray-700 rounded-xl py-2.5 pl-8 pr-4 text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <!-- Category -->
+        <div>
+          <label class="block text-xs text-gray-400 font-medium mb-1">Category</label>
+          <select id="f-cat" class="w-full bg-gray-950 border border-gray-700 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+            <option value="NEFT">NEFT / RTGS Transfer</option>
+            <option value="SALARY">Salary / Payroll</option>
+            <option value="VENDOR">Vendor Payment</option>
+            <option value="INVESTMENT">Investment / FD</option>
+            <option value="UPI_PAY">UPI Payment</option>
+            <option value="MISC">Miscellaneous</option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-xs text-gray-400 font-medium mb-1">Narration / Memo</label>
+          <input type="text" id="f-desc" required placeholder="e.g. Q4 Vendor Settlement"
+            class="w-full bg-gray-950 border border-gray-700 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <button type="submit"
+          class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition shadow shadow-emerald-900/40 flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-lock"></i> Commit Transaction
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
